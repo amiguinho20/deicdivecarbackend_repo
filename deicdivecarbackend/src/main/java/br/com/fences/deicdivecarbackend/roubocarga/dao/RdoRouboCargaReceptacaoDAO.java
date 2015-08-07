@@ -16,15 +16,16 @@ import org.apache.log4j.Logger;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
-import br.com.fences.deicdivecarbackend.config.Log;
-import br.com.fences.fencesutils.conversor.mongodb.Converter;
-import br.com.fences.fencesutils.verificador.Verificador;
-import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
-import br.com.fences.ocorrenciaentidade.ocorrencia.auxiliar.Auxiliar;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+
+import br.com.fences.deicdivecarbackend.config.Log;
+import br.com.fences.fencesutils.conversor.mongodb.Converter;
+import br.com.fences.fencesutils.formatar.FormatarData;
+import br.com.fences.fencesutils.verificador.Verificador;
+import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
+import br.com.fences.ocorrenciaentidade.ocorrencia.auxiliar.Auxiliar;
 
 @ApplicationScoped
 public class RdoRouboCargaReceptacaoDAO {     
@@ -69,7 +70,7 @@ public class RdoRouboCargaReceptacaoDAO {
     	}
 	}
 
-	private boolean isExisteNoBanco(Ocorrencia ocorrencia)
+	public boolean isExisteNoBanco(Ocorrencia ocorrencia)
 	{
 		boolean existe = false;
 		if (Verificador.isValorado(ocorrencia.getId()))
@@ -94,17 +95,18 @@ public class RdoRouboCargaReceptacaoDAO {
 		return existe;
 	}
 	
-	private Document consultar(Ocorrencia ocorrencia)
+	public Ocorrencia consultar(Ocorrencia ocorrencia)
 	{
 		BasicDBObject pesquisa = new BasicDBObject();
 		pesquisa.put("ID_DELEGACIA", ocorrencia.getIdDelegacia());
 		pesquisa.put("ANO_BO", ocorrencia.getAnoBo());
 		pesquisa.put("NUM_BO", ocorrencia.getNumBo());
 		Document documento = colecao.find().first();
-		return documento;
+		Ocorrencia ocorrenciaConsultada = converter.paraObjeto(documento);
+		return ocorrenciaConsultada;
 	}
 	
-	private Ocorrencia consultarPai(Ocorrencia filho)
+	public Ocorrencia consultarPai(Ocorrencia filho)
 	{
 		Ocorrencia pai = null;
 		if (Verificador.isValorado(filho.getAnoReferenciaBo()))
@@ -201,61 +203,34 @@ public class RdoRouboCargaReceptacaoDAO {
 	{
 		try
 		{
+			ocorrencia.getAuxiliar().setDataProcessamento(FormatarData.dataHoraCorrente());
 			Document documento = converter.paraDocumento(ocorrencia);
 			colecao.replaceOne(eq("_id", documento.get("_id")), documento);
 		}
 		catch (Exception e)
 		{
-			String msg = "Erro na alteracao. num[" + ocorrencia.getNumBo() + "] ano[" + ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/" + ocorrencia.getNomeDelegacia() + "].";
-			System.err.println(msg);
-			e.printStackTrace();
+			String msg = "Erro na alteracao. num[" + ocorrencia.getNumBo() + "] ano["
+					+ ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/"
+					+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
+					+ "err[" + e.getMessage() + "].";
 			throw new RuntimeException(msg);
 		}
 	}
 	
 	public void adicionar(Ocorrencia ocorrencia)
 	{
-		boolean existe = isExisteNoBanco(ocorrencia);
-		if (existe)
-		{
-			String msg = "Erro na adicao. num[" + ocorrencia.getNumBo() + "] ano[" + ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/" + ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "]. ";
-			msg += "Esse registro ja existe no banco de dados. INCLUSAO IGNORADA";
-			logger.warn(msg);
-			//return;
-			throw new RuntimeException(msg);
-		}
-
 		try
 		{
-			Ocorrencia pai = null;
-			if (Verificador.isValorado(ocorrencia.getAnoReferenciaBo()))
-			{
-				//-- referencia cruzada 1/2, id do pai no filho(registro atual)
-				pai = consultarPai(ocorrencia);
-				if (pai != null)
-				{
-					ocorrencia.getAuxiliar().setPai(pai);
-				}
-			}
-			
+			ocorrencia.getAuxiliar().setDataProcessamento(FormatarData.dataHoraCorrente());
 			Document documento = converter.paraDocumento(ocorrencia);
 			colecao.insertOne(documento);
-			
-			if (pai != null)
-			{
-				//-- referencia cruzada 2/2, id do filho no pai
-				documento = consultar(ocorrencia);
-				Ocorrencia ocorrenciaRecemAdicionada = converter.paraObjeto(documento);
-				pai.getAuxiliar().getFilhos().add(ocorrenciaRecemAdicionada);
-				substituir(pai);
-			}
-			
 		}
 		catch (Exception e)
 		{
-			String msg = "Erro na adicao. num[" + ocorrencia.getNumBo() + "] ano[" + ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/" + ocorrencia.getNomeDelegacia() + "].";
-			System.err.println(msg);
-			e.printStackTrace();
+			String msg = "Erro na adicao. num[" + ocorrencia.getNumBo() + "] ano["
+					+ ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/"
+					+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
+					+ "err[" + e.getMessage() + "].";
 			throw new RuntimeException(msg);
 		}
 	}

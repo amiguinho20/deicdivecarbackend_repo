@@ -19,8 +19,8 @@ import com.mongodb.client.MongoDatabase;
 @ApplicationScoped
 public class MongoProvider {
 
-	//private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep04"; 
-	private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep03";
+	private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep04"; 
+	//private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep03";
 	private static final String COLECAO_ENDERECO_AVULSO = "endereco_avulso";
 	
 	private MongoClient conexao;

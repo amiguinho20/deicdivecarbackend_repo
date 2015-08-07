@@ -1,6 +1,7 @@
 package br.com.fences.deicdivecarbackend.roubocarga.converter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -8,18 +9,20 @@ import javax.enterprise.context.ApplicationScoped;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import br.com.fences.fencesutils.conversor.mongodb.Converter;
 import br.com.fences.fencesutils.verificador.Verificador;
 import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
 import br.com.fences.ocorrenciaentidade.ocorrencia.auxiliar.Auxiliar;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 @ApplicationScoped
 public class OcorrenciaConverter extends Converter<Ocorrencia>{
 
-	private Gson gson = new GsonBuilder().create();
+	private Gson gson = new GsonBuilder()
+			.registerTypeHierarchyAdapter(Collection.class, new ColecaoJsonAdapter())
+			.create();
 	
 	@Override
 	public Document paraDocumento(Ocorrencia ocorrencia) 
@@ -86,13 +89,16 @@ public class OcorrenciaConverter extends Converter<Ocorrencia>{
     		if (docAuxiliar.get("FILHOS") != null)
     		{
     			List filhosDocList = (ArrayList) doc.get("FILHOS");
-        		for (Object obj: filhosDocList)
-            	{
-            		ObjectId id = (ObjectId) obj;
-            		Ocorrencia filho = new Ocorrencia();
-            		filho.setId(obj.toString());
-            		ocorrencia.getAuxiliar().getFilhos().add(filho);
-            	}
+    			if (Verificador.isValorado(filhosDocList))
+    			{
+	        		for (Object obj: filhosDocList)
+	            	{
+	            		ObjectId id = (ObjectId) obj;
+	            		Ocorrencia filho = new Ocorrencia();
+	            		filho.setId(obj.toString());
+	            		ocorrencia.getAuxiliar().getFilhos().add(filho);
+	            	}
+    			}
     		}
     		if (docAuxiliar.get("PAI") != null)
     		{
