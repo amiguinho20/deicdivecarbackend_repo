@@ -4,8 +4,10 @@ import static com.mongodb.client.model.Filters.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -19,9 +21,10 @@ import org.bson.types.ObjectId;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Filters;
 
 import br.com.fences.deicdivecarbackend.config.Log;
-import br.com.fences.fencesutils.conversor.mongodb.Converter;
+import br.com.fences.fencesutils.conversor.converter.Converter;
 import br.com.fences.fencesutils.formatar.FormatarData;
 import br.com.fences.fencesutils.verificador.Verificador;
 import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
@@ -40,14 +43,25 @@ public class RdoRouboCargaReceptacaoDAO {
 	
 	
 	/**
-	 * Consulta pelo id (identificador unico), o "_id"
+	 * Consulta pelo id (identificador unico), o "_id" e coloca associacoes
 	 * @param id
 	 */
 	public Ocorrencia consultar(final String id)
 	{
-	    Document documento = colecao.find(eq("_id", new ObjectId(id))).first();
-	    Ocorrencia ocorrencia = converter.paraObjeto(documento);
+	    Ocorrencia ocorrencia = consultarSemAssociacao(id);
+	    consultarPaiRef(ocorrencia);
 	    consultarComplementares(ocorrencia);
+	    return ocorrencia;
+	}
+	
+	/**
+	 * Consulta pelo id (identificador unico), o "_id"
+	 * @param id
+	 */
+	private Ocorrencia consultarSemAssociacao(final String id)
+	{
+	    Document documento = colecao.find(eq("_id", new ObjectId(id))).first();
+	    Ocorrencia ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
 	    return ocorrencia;
 	}
 	
@@ -60,13 +74,32 @@ public class RdoRouboCargaReceptacaoDAO {
 		Auxiliar auxiliar = ocorrencia.getAuxiliar();
     	if (auxiliar != null && Verificador.isValorado(ocorrencia.getAuxiliar().getFilhos()))
     	{
-        	List<Ocorrencia> filhos = new ArrayList<>();
+        	Set<Ocorrencia> filhos = new LinkedHashSet<>();
         	for (Ocorrencia filho : auxiliar.getFilhos())
         	{
-        		filho = consultar(filho.getId());
+        		filho = consultarSemAssociacao(filho.getId());
+        		filho.getAuxiliar().setPai(ocorrencia);
         		filhos.add(filho);
         	}
-        	auxiliar.setFilhos(filhos);
+        	auxiliar.setFilhos(filhos); 
+    	}
+	}
+	
+	/**
+	 * atualiza a lista por referencia
+	 * @param ocorrencia
+	 */
+	private void consultarPaiRef(Ocorrencia ocorrencia)
+	{
+		Auxiliar auxiliar = ocorrencia.getAuxiliar();
+    	if (auxiliar != null && ocorrencia.getAuxiliar().getPai() != null )
+    	{
+    		Ocorrencia pai = ocorrencia.getAuxiliar().getPai();
+    		if (Verificador.isValorado(pai.getId()))
+    		{
+        		pai = consultarSemAssociacao(pai.getId());
+        		auxiliar.setPai(pai);
+    		}
     	}
 	}
 
@@ -75,14 +108,14 @@ public class RdoRouboCargaReceptacaoDAO {
 		boolean existe = false;
 		if (Verificador.isValorado(ocorrencia.getId()))
 		{
-			if (consultar(ocorrencia.getId()) != null)
+			if (consultarSemAssociacao(ocorrencia.getId()) != null)
 			{
 				existe = true;
 			}
 		}
 		else
 		{
-			BasicDBObject pesquisa = new BasicDBObject();
+			BasicDBObject pesquisa = new BasicDBObject(); 
 			pesquisa.put("ID_DELEGACIA", ocorrencia.getIdDelegacia());
 			pesquisa.put("ANO_BO", ocorrencia.getAnoBo());
 			pesquisa.put("NUM_BO", ocorrencia.getNumBo());
@@ -101,8 +134,8 @@ public class RdoRouboCargaReceptacaoDAO {
 		pesquisa.put("ID_DELEGACIA", ocorrencia.getIdDelegacia());
 		pesquisa.put("ANO_BO", ocorrencia.getAnoBo());
 		pesquisa.put("NUM_BO", ocorrencia.getNumBo());
-		Document documento = colecao.find().first();
-		Ocorrencia ocorrenciaConsultada = converter.paraObjeto(documento);
+		Document documento = colecao.find(pesquisa).first();
+		Ocorrencia ocorrenciaConsultada = converter.paraObjeto(documento, Ocorrencia.class);
 		return ocorrenciaConsultada;
 	}
 	
@@ -115,8 +148,11 @@ public class RdoRouboCargaReceptacaoDAO {
 			pesquisa.put("ID_DELEGACIA", filho.getDelegReferenciaBo());
 			pesquisa.put("ANO_BO", filho.getAnoReferenciaBo());
 			pesquisa.put("NUM_BO", filho.getNumReferenciaBo());
-			Document documento = colecao.find().first();
-			pai = converter.paraObjeto(documento);
+			Document documento = colecao.find(pesquisa).first(); 
+			if (documento != null)
+			{
+				pai = converter.paraObjeto(documento, Ocorrencia.class);
+			}
 		}
 		return pai;
 	}
@@ -160,7 +196,8 @@ public class RdoRouboCargaReceptacaoDAO {
 	    try {
 	        while (cursor.hasNext()) {
 	        	Document documento = cursor.next();
-	        	Ocorrencia ocorrencia = converter.paraObjeto(documento);
+	        	Ocorrencia ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
+	        	consultarPaiRef(ocorrencia);
 	        	consultarComplementares(ocorrencia);
 	        	//pesquisarOcorrenciaComplementar(ocorrencia);
 	        	ocorrencias.add(ocorrencia);
@@ -201,11 +238,21 @@ public class RdoRouboCargaReceptacaoDAO {
 	 */
 	public void substituir(Ocorrencia ocorrencia)
 	{
+		validarRelacionamento(ocorrencia);
 		try
 		{
 			ocorrencia.getAuxiliar().setDataProcessamento(FormatarData.dataHoraCorrente());
 			Document documento = converter.paraDocumento(ocorrencia);
-			colecao.replaceOne(eq("_id", documento.get("_id")), documento);
+			colecao.replaceOne(Filters.eq("_id", documento.get("_id")), documento);
+//			Bson filtros = Filters.and(
+//					Filters.eq("_id", documento.get("_id")), 
+//					Filters.eq("ANO_BO", documento.get("ANO_BO")),
+//					Filters.eq("NUM_BO", documento.get("NUM_BO")),
+//					Filters.eq("ID_DELEGACIA", documento.get("ID_DELEGACIA")),
+//					Filters.eq("DATAHORA_REGISTRO_BO", documento.get("DATAHORA_REGISTRO_BO"))
+//			);
+//			colecao.replaceOne(filtros, documento);
+			//colecao.updateOne(eq("_id", documento.get("_id")), documento);
 		}
 		catch (Exception e)
 		{
@@ -217,13 +264,21 @@ public class RdoRouboCargaReceptacaoDAO {
 		}
 	}
 	
-	public void adicionar(Ocorrencia ocorrencia)
+	/**
+	 * retorna uma referencia com o ID do banco
+	 * @param ocorrencia
+	 * @return
+	 */
+	public Ocorrencia adicionar(Ocorrencia ocorrencia)
 	{
+		validarRelacionamento(ocorrencia);
 		try
 		{
 			ocorrencia.getAuxiliar().setDataProcessamento(FormatarData.dataHoraCorrente());
 			Document documento = converter.paraDocumento(ocorrencia);
 			colecao.insertOne(documento);
+			ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
+			return ocorrencia;
 		}
 		catch (Exception e)
 		{
@@ -232,6 +287,41 @@ public class RdoRouboCargaReceptacaoDAO {
 					+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
 					+ "err[" + e.getMessage() + "].";
 			throw new RuntimeException(msg);
+		}
+	}
+	
+	private void validarRelacionamento(Ocorrencia ocorrencia)
+	{
+		if (ocorrencia != null && ocorrencia.getAuxiliar() != null)
+		{
+			Auxiliar auxiliar = ocorrencia.getAuxiliar();
+			if (auxiliar.getPai() != null)
+			{
+				Ocorrencia pai = auxiliar.getPai();
+				if (pai.getId().equals(ocorrencia.getId()))
+				{
+					String msg = "Validacao de alteracao. num[" + ocorrencia.getNumBo() + "] ano["
+							+ ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/"
+							+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
+							+ "err[ registro corrente possui PAI com o mesmo 'id' ].";
+					throw new RuntimeException(msg);
+				}
+			}
+			
+			if (Verificador.isValorado(auxiliar.getFilhos()))
+			{
+				for (Ocorrencia filho : auxiliar.getFilhos())
+				{
+					if (filho.getId().equals(ocorrencia.getId()))
+					{
+						String msg = "Validacao de alteracao. num[" + ocorrencia.getNumBo() + "] ano["
+								+ ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/"
+								+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
+								+ "err[ registro corrente possui FILHO com o mesmo 'id' ].";
+						throw new RuntimeException(msg);
+					}
+				}
+			}
 		}
 	}
 	
@@ -360,6 +450,7 @@ public class RdoRouboCargaReceptacaoDAO {
 				{
 					periodo.put("$lt", filtros.get("dataFinal") + "235959");
 				}
+				pesquisa.put("DATAHORA_REGISTRO_BO", periodo);
 			}
 			if (filtros.containsKey("flagFlagrante"))
 			{
@@ -398,8 +489,32 @@ public class RdoRouboCargaReceptacaoDAO {
 						new BasicDBObject("$in", 
 								Arrays.asList("180A", "180B", "180C") ));
 				}
-			}		
-		}	
+			}
+			if (filtros.containsKey("latitude") && filtros.containsKey("longitude") && filtros.containsKey("raioEmMetros"))
+			{
+				double latitude = Double.parseDouble(filtros.get("latitude"));
+				double longitude = Double.parseDouble(filtros.get("longitude"));
+				int raioEmMetros = Integer.parseInt(filtros.get("raioEmMetros"));
+				double[] longitudeLatitude = {longitude, latitude};
+				
+				BasicDBObject geometry = new BasicDBObject();
+				geometry.put("type", "Point");
+				geometry.put("coordinates", longitudeLatitude);
+				
+				BasicDBObject near = new BasicDBObject();
+				near.put("$geometry", geometry);
+				near.put("$maxDistance", raioEmMetros);
+				
+				BasicDBObject geo = new BasicDBObject();
+				geo.put("$near", near);
+				
+				pesquisa.put("AUXILIAR.geometry", geo);
+				
+				//{"AUXILIAR.geometry": {$near: {$geometry: {"type":"Point", "coordinates":[-47.0621223449707, -23.44363021850586]}, $maxDistance: 13}}}
+				
+			}
+		}
+			
 		return pesquisa;
 	}
 	

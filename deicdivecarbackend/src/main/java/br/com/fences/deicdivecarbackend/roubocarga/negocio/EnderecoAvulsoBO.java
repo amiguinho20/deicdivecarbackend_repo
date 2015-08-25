@@ -48,6 +48,12 @@ public class EnderecoAvulsoBO {
 	{
 		enderecoAvulsoDAO.adicionar(enderecoAvulso);
 	}
+
+	public void adicionar(List<EnderecoAvulso> enderecosAvulsos)
+	{
+		enderecoAvulsoDAO.adicionar(enderecosAvulsos);
+	}
+
 	
 	public void remover(EnderecoAvulso enderecoAvulso)
 	{

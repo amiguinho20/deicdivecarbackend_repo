@@ -33,6 +33,71 @@ public class RouboCarga {
 
 		try
 		{
+			if (existe)
+			{
+				rouboCargaDAO.substituir(ocorrencia);
+			}
+			else
+			{
+				ocorrencia = rouboCargaDAO.adicionar(ocorrencia);
+			}
+
+			
+			Ocorrencia pai = null;
+			if (Verificador.isValorado(ocorrencia.getAnoReferenciaBo()))
+			{
+				//-- referencia cruzada
+				pai = rouboCargaDAO.consultarPai(ocorrencia);
+				if (pai != null)
+				{
+					//-- adiciona o PAI no FILHO
+					ocorrencia.getAuxiliar().setPai(pai);
+
+					//-- adiciona o FILHO no PAI
+					pai.getAuxiliar().getFilhos().add(ocorrencia);
+
+					//-- verifica se registro inserido(filho) possui natureza de localizacao, caso sim, sinaliza o pai
+					for (Natureza natureza : ocorrencia.getNaturezas())
+					{
+						String idOcorrencia = natureza.getIdOcorrencia();
+						String idEspecie = natureza.getIdEspecie();
+						if (Verificador.isValorado(idOcorrencia, idEspecie))
+						{
+							if (idOcorrencia.equals("40") && idEspecie.equals("40"))
+							{
+								pai.getAuxiliar().setFlagComplementarDeNaturezaLocalizacao("S");
+							}
+						}
+					}
+					rouboCargaDAO.substituir(pai);
+					rouboCargaDAO.substituir(ocorrencia);
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			String msg = "Erro na regra de adicao e associacoes. num[" + ocorrencia.getNumBo() + "] ano["
+					+ ocorrencia.getAnoBo() + "] dlg[" + ocorrencia.getIdDelegacia() + "/"
+					+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
+					+ "err[" + e.getMessage() + "].";
+			throw new RuntimeException(msg);
+		}	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+/*		
+		try
+		{
 			Ocorrencia pai = null;
 			if (Verificador.isValorado(ocorrencia.getAnoReferenciaBo()))
 			{
@@ -61,7 +126,7 @@ public class RouboCarga {
 				pai.getAuxiliar().getFilhos().add(ocorrenciaRecemAdicionada);
 				
 				//-- verifica se registro inserido(filho) possui natureza de localizacao, caso sim, sinaliza o pai
-				for (Natureza natureza : ocorrencia.getNaturezas())
+				for (Natureza natureza : ocorrenciaRecemAdicionada.getNaturezas())
 				{
 					String idOcorrencia = natureza.getIdOcorrencia();
 					String idEspecie = natureza.getIdEspecie();
@@ -69,7 +134,7 @@ public class RouboCarga {
 					{
 						if (idOcorrencia.equals("40") && idEspecie.equals("40"))
 						{
-							ocorrencia.getAuxiliar().setFlagComplementarDeNaturezaLocalizacao("S");
+							pai.getAuxiliar().setFlagComplementarDeNaturezaLocalizacao("S");
 						}
 					}
 				}
@@ -85,7 +150,7 @@ public class RouboCarga {
 					+ "err[" + e.getMessage() + "].";
 			throw new RuntimeException(msg);
 		}
-
+*/
 		
 		
 	}

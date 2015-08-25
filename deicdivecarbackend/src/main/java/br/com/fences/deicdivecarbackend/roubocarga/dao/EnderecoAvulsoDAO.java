@@ -16,7 +16,7 @@ import org.bson.types.ObjectId;
 
 import br.com.fences.deicdivecarentidade.enderecoavulso.EnderecoAvulso;
 import br.com.fences.fencesutils.conversor.AcentuacaoParaRegex;
-import br.com.fences.fencesutils.conversor.mongodb.Converter;
+import br.com.fences.fencesutils.conversor.converter.Converter;
 import br.com.fences.fencesutils.formatar.FormatarData;
 import br.com.fences.fencesutils.verificador.Verificador;
 
@@ -24,7 +24,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
-@Named
+@Named 
 @ApplicationScoped
 public class EnderecoAvulsoDAO {     
 
@@ -43,7 +43,7 @@ public class EnderecoAvulsoDAO {
 	public EnderecoAvulso consultar(final String id)
 	{
 	    Document documento = colecao.find(eq("_id", new ObjectId(id))).first();
-	    EnderecoAvulso enderecoAvulso = converter.paraObjeto(documento);
+	    EnderecoAvulso enderecoAvulso = converter.paraObjeto(documento, EnderecoAvulso.class);
 	    return enderecoAvulso;
 	}
 	
@@ -78,7 +78,7 @@ public class EnderecoAvulsoDAO {
 	    try {
 	        while (cursor.hasNext()) {
 	        	Document documento = cursor.next();
-	        	EnderecoAvulso enderecoAvulso = converter.paraObjeto(documento);
+	        	EnderecoAvulso enderecoAvulso = converter.paraObjeto(documento, EnderecoAvulso.class);
 	        	enderecosAvulsos.add(enderecoAvulso);
 	        }
 	    } finally {
@@ -90,7 +90,7 @@ public class EnderecoAvulsoDAO {
 	
 	public List<EnderecoAvulso> pesquisarAtivoPorTipo(List<String> tipos)
 	{
-		List<EnderecoAvulso> enderecosAvulsos = new ArrayList<>();
+		List<EnderecoAvulso> enderecosAvulsos = new ArrayList<>(); 
 		BasicDBObject pesquisa = new BasicDBObject();
 		
 		if (tipos != null && !tipos.isEmpty())
@@ -104,7 +104,7 @@ public class EnderecoAvulsoDAO {
 		    try {
 		        while (cursor.hasNext()) {
 		        	Document documento = cursor.next();
-		        	EnderecoAvulso enderecoAvulso = converter.paraObjeto(documento);
+		        	EnderecoAvulso enderecoAvulso = converter.paraObjeto(documento, EnderecoAvulso.class);
 		        	enderecosAvulsos.add(enderecoAvulso);
 		        }
 		    } finally {

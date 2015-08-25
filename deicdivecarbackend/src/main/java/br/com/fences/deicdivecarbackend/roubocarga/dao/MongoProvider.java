@@ -11,17 +11,21 @@ import org.bson.Document;
 import br.com.fences.deicdivecarbackend.config.AppConfig;
 import br.com.fences.fencesutils.verificador.Verificador;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
 
 @ApplicationScoped
-public class MongoProvider {
+public class MongoProvider {  
 
-	private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep04"; 
+	private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep05"; 
+	//private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep04"; 
 	//private static final String COLECAO_ROUBO_CARGA = "rdo_roubo_carga_recep03";
-	private static final String COLECAO_ENDERECO_AVULSO = "endereco_avulso";
+	//private static final String COLECAO_ENDERECO_AVULSO = "endereco_avulso";
+	private static final String COLECAO_ENDERECO_AVULSO = "endereco_avulso02";
 	
 	private MongoClient conexao;
 	private MongoDatabase banco;
@@ -59,6 +63,21 @@ public class MongoProvider {
 		{
 			banco.createCollection(COLECAO_ROUBO_CARGA);
 			colecaoRdoRouboCarga = banco.getCollection(COLECAO_ROUBO_CARGA);
+			   
+			BasicDBObject campos = new BasicDBObject();
+			campos.append("DATAHORA_REGISTRO_BO", 1);
+			
+			IndexOptions opcoes =  new IndexOptions();
+			opcoes.unique(true);
+			
+			colecaoRdoRouboCarga.createIndex(campos, opcoes);
+			
+			BasicDBObject campos2 = new BasicDBObject();
+			campos2.append("ANO_BO", 1);
+			campos2.append("NUM_BO", 1);
+			campos2.append("ID_DELEGACIA", 1);
+			
+			colecaoRdoRouboCarga.createIndex(campos2, opcoes);
 		}
 		
 		colecaoEnderecosAvulsos = banco.getCollection(COLECAO_ENDERECO_AVULSO);
