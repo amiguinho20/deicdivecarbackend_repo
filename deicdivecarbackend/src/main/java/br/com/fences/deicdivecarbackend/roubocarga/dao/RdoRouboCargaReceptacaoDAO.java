@@ -4,7 +4,13 @@ import static com.mongodb.client.model.Filters.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +25,7 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
@@ -61,7 +68,14 @@ public class RdoRouboCargaReceptacaoDAO {
 	private Ocorrencia consultarSemAssociacao(final String id)
 	{
 	    Document documento = colecao.find(eq("_id", new ObjectId(id))).first();
-	    Ocorrencia ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
+	    Ocorrencia ocorrencia = null;
+	    if (documento == null){
+	    	logger.info("a consultaSemAssociacao para o id[" + id + "] retornou nulo.");
+	    }
+	    else
+	    {
+	    	ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
+	    }
 	    return ocorrencia;
 	}
 	
@@ -157,6 +171,30 @@ public class RdoRouboCargaReceptacaoDAO {
 		return pai;
 	}
 	
+	public Set<Ocorrencia> consultarFilhos(Ocorrencia pai)
+	{
+		Set<Ocorrencia> filhos = new LinkedHashSet<>();
+		
+		BasicDBObject pesquisa = new BasicDBObject();
+		pesquisa.put("DELEG_REFERENCIA_BO", pai.getIdDelegacia());
+		pesquisa.put("ANO_REFERENCIA_BO", pai.getAnoBo());
+		pesquisa.put("NUM_REFERENCIA_BO", pai.getNumBo());
+		
+	    MongoCursor<Document> cursor = colecao.find(pesquisa).iterator();
+	    
+	    try {
+	        while (cursor.hasNext()) {
+	        	Document documento = cursor.next();
+	        	Ocorrencia ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
+	        	consultarPaiRef(ocorrencia);
+	        	filhos.add(ocorrencia);
+	        }
+	    } finally {
+	        cursor.close();
+	    }
+	    return filhos;
+	}
+	
 	/**
 	 * @param pesquisa
 	 * @return count
@@ -230,6 +268,110 @@ public class RdoRouboCargaReceptacaoDAO {
 	    return datahoraRegistroBo;
 	}
 	
+	public String pesquisarPrimeiraDataRegistro()
+	{
+		return pesquisarPrimeiraDataRegistro(true);
+	}
+	
+	public String pesquisarUltimaDataRegistro()
+	{
+		return pesquisarPrimeiraDataRegistro(false);
+	}
+	
+	private String pesquisarPrimeiraDataRegistro(boolean primeiro)
+	{
+		String datahoraRegistroBo = null;
+		
+		int ordem = -1;
+		if (primeiro)
+		{
+			ordem = 1;
+		}
+		
+		BasicDBObject pesquisa = new BasicDBObject();
+		BasicDBObject projecao = new BasicDBObject("DATAHORA_REGISTRO_BO", 1).append("_id", 0);
+		BasicDBObject ordenacao = new BasicDBObject("DATAHORA_REGISTRO_BO", ordem);
+		
+		Document documento = colecao.find(pesquisa).projection(projecao).sort(ordenacao).first();
+	
+        if (documento != null) {
+        	datahoraRegistroBo = documento.getString("DATAHORA_REGISTRO_BO");
+        }
+
+	    return datahoraRegistroBo;
+	}
+	
+	public List<String> listarAnos()
+	{
+		List<String> anos = new ArrayList<>();
+		
+		MongoCursor<String> cursor = colecao.distinct("ANO_BO", String.class).iterator();
+		
+	    try {
+	        while (cursor.hasNext()) {
+	        	String valor = cursor.next();
+	        	anos.add(valor);
+	        }
+	    } finally {
+	        cursor.close();
+	    }
+	    Collections.sort(anos);
+	    Collections.reverse(anos);
+	    
+		return anos;
+	}
+	
+	public Map<String, String> listarDelegacias()
+	{
+		Map<String, String> delegacias = new LinkedHashMap<>();
+		
+		//MongoCursor<String> cursor = colecao.distinct("ANO_BO", String.class).iterator();
+		
+		Map<String, Object> dbObjIdMap = new HashMap<String, Object>();
+		dbObjIdMap.put("ID_DELEGACIA", "$ID_DELEGACIA");
+		dbObjIdMap.put("NOME_DELEGACIA", "$NOME_DELEGACIA");
+		DBObject groupFields = new BasicDBObject( "_id", new BasicDBObject(dbObjIdMap));
+		
+		MongoCursor<Document> cursor = colecao.aggregate(Arrays.asList(new Document("$group", groupFields))).iterator();
+		
+		
+	    try {
+	        while (cursor.hasNext()) {
+	        	Document documento = cursor.next();
+	        	Document idDoc = (Document) documento.get("_id");
+	        	String chave = idDoc.getString("ID_DELEGACIA");
+	        	String valor = idDoc.getString("NOME_DELEGACIA");
+	        	delegacias.put(chave, valor);
+	        }
+	    } finally {
+	        cursor.close();
+	    }
+	    
+	    //-- ordernar o map por valor
+	    {
+	    	Map<String, String> mapaDesordenado = delegacias;
+	    		
+	    	// Convert Map to List
+	    	List<Map.Entry<String, String>> list = new LinkedList<Map.Entry<String, String>>(mapaDesordenado.entrySet());
+
+	    	// Sort list with comparator, to compare the Map values
+	    	Collections.sort(list, new Comparator<Map.Entry<String, String>>() {
+	    		public int compare(Map.Entry<String, String> o1,
+	    								Map.Entry<String, String> o2) {
+	    				return (o1.getValue()).compareTo(o2.getValue());
+	    			}
+	    		});
+
+	    	// Convert sorted map back to a Map
+	    	Map<String, String> mapaOrdenado = new LinkedHashMap<String, String>();
+	    	for (Iterator<Map.Entry<String, String>> it = list.iterator(); it.hasNext();) {
+	    		Map.Entry<String, String> entry = it.next();
+	    		mapaOrdenado.put(entry.getKey(), entry.getValue());
+	    	}
+	    	delegacias = mapaOrdenado;
+	    }	    
+		return delegacias;
+	}
 	
 	
 	/**
@@ -430,9 +572,6 @@ public class RdoRouboCargaReceptacaoDAO {
 		return resultado;
 	}
 	
-	
-	///////--- batch
-	
 	private BasicDBObject montarPesquisa(Map<String, String> filtros)
 	{
 		BasicDBObject pesquisa = new BasicDBObject();
@@ -512,6 +651,18 @@ public class RdoRouboCargaReceptacaoDAO {
 				
 				//{"AUXILIAR.geometry": {$near: {$geometry: {"type":"Point", "coordinates":[-47.0621223449707, -23.44363021850586]}, $maxDistance: 13}}}
 				
+			}
+			if (filtros.containsKey("numBo"))
+			{
+				pesquisa.append("NUM_BO", filtros.get("numBo"));
+			}
+			if (filtros.containsKey("anoBo"))
+			{
+				pesquisa.append("ANO_BO", filtros.get("anoBo"));
+			}
+			if (filtros.containsKey("idDelegacia"))
+			{
+				pesquisa.append("ID_DELEGACIA", filtros.get("idDelegacia"));
 			}
 		}
 			

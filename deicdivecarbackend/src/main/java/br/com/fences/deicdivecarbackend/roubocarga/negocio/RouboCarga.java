@@ -1,7 +1,9 @@
 package br.com.fences.deicdivecarbackend.roubocarga.negocio;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -21,7 +23,7 @@ public class RouboCarga {
 	@Inject
 	private RdoRouboCargaReceptacaoDAO rouboCargaDAO;
 	
-	public void adicionar(Ocorrencia ocorrencia)
+	public Ocorrencia adicionar(Ocorrencia ocorrencia)
 	{
 		boolean existe = rouboCargaDAO.isExisteNoBanco(ocorrencia);
 		if (existe)
@@ -43,6 +45,39 @@ public class RouboCarga {
 			}
 
 			
+			boolean atualizaRegistro = false;
+			//--
+			Set<Ocorrencia> filhos = new LinkedHashSet<>();
+			filhos = rouboCargaDAO.consultarFilhos(ocorrencia);
+			
+			for (Ocorrencia filho : filhos)
+			{
+				if (filho.getAuxiliar().getPai() == null)
+				{
+					filho.getAuxiliar().setPai(ocorrencia);
+					rouboCargaDAO.substituir(filho);
+					ocorrencia.getAuxiliar().getFilhos().add(filho);
+					atualizaRegistro = true;
+				}
+				else
+				{
+					Ocorrencia pai = filho.getAuxiliar().getPai();
+					if (ocorrencia.getId().equals(pai.getId()))
+					{
+						//-- o id do pai no banco condiz com o id do registro atual... 
+						//-- mantem a referencia
+						ocorrencia.getAuxiliar().getFilhos().add(filho);
+						atualizaRegistro = true;
+					}
+					else
+					{
+						String msg = "A ocorrencia[" + ocorrencia.getId() + "] possui um filho com um pai[" + pai.getId() + "] de ID diferente.";
+						throw new RuntimeException(msg);
+					}
+				}
+			}
+			
+			//--
 			Ocorrencia pai = null;
 			if (Verificador.isValorado(ocorrencia.getAnoReferenciaBo()))
 			{
@@ -70,9 +105,15 @@ public class RouboCarga {
 						}
 					}
 					rouboCargaDAO.substituir(pai);
-					rouboCargaDAO.substituir(ocorrencia);
+					atualizaRegistro = true;
 				}
 			}
+			
+			if (atualizaRegistro)
+			{
+				rouboCargaDAO.substituir(ocorrencia);
+			}
+			
 		}
 		catch (Exception e)
 		{
@@ -83,7 +124,7 @@ public class RouboCarga {
 			throw new RuntimeException(msg);
 		}	
 		
-		
+		return ocorrencia;
 		
 		
 		
@@ -193,5 +234,25 @@ public class RouboCarga {
 	public void substituir(Ocorrencia ocorrencia)
 	{
 		rouboCargaDAO.substituir(ocorrencia);
+	}
+	
+	public String pesquisarPrimeiraDataRegistro()
+	{
+		return rouboCargaDAO.pesquisarPrimeiraDataRegistro();
+	}
+	
+	public String pesquisarUltimaDataRegistro()
+	{
+		return rouboCargaDAO.pesquisarUltimaDataRegistro();
+	}
+
+	public List<String> listarAnos()
+	{
+		return rouboCargaDAO.listarAnos();
+	}
+	
+	public Map<String, String> listarDelegacias()
+	{
+		return rouboCargaDAO.listarDelegacias();
 	}
 }

@@ -4,6 +4,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
@@ -30,22 +31,37 @@ public class LogInterceptor {
 		try {
 			obj = ctx.proceed();
 		} catch (Exception e) {
-			logar(ctx, tempoInicial, e);
+			logar(ctx, tempoInicial, null, e);
 			throw e;
 		}
-		logar(ctx, tempoInicial, null);
+		logar(ctx, tempoInicial, obj, null);
 
 		return obj;
 	}
 
-	private void logar(InvocationContext ctx, long tempoInicial, Exception e) {
+	private void logar(InvocationContext ctx, long tempoInicial, final Object retorno, Exception e) {
 		String duracao = calcularTempo(tempoInicial);
 		String msg = null;
+		String msgColecao = null;
 		if (e == null) {
+			
+			if (retorno != null)
+			{
+				if (retorno instanceof Collection)
+				{
+					Collection colRetorno = (Collection) retorno;
+					msgColecao = "a colecao retornou " + colRetorno.size() + " registros ";
+				}
+			}
+			
 			msg = "Metodo " + ctx.getMethod().getName()
 					+ " parametros "
 					+ Arrays.deepToString(ctx.getParameters()) + ", duracao ["
-					+ duracao + "].";
+					+ duracao + "] ";
+			if (msgColecao != null)
+			{
+				msg += msgColecao;
+			}
 			logger.info(msg);
 		} else {
 			msg = "Erro [" + e.getMessage() + "] metodo "
