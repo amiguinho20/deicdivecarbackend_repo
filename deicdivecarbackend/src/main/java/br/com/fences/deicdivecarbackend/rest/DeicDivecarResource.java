@@ -155,12 +155,10 @@ public class DeicDivecarResource {
     }
     
     @DELETE
-    @Path("enderecoAvulso/remover")
-    public void enderecoAvulsoRemover(InputStream ipFiltros) 
+    @Path("enderecoAvulso/remover/{id}")
+    public void enderecoAvulsoRemover(@PathParam("id") String id) 
     {
-    	String json = InputStreamParaJson.converter(ipFiltros);
-    	EnderecoAvulso enderecoAvulso = converterEnderecoAvulso.paraObjeto(json, EnderecoAvulso.class);
-    	enderecoAvulsoBO.remover(enderecoAvulso);
+    	enderecoAvulsoBO.remover(id);
     }
 
     //**********

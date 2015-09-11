@@ -54,6 +54,10 @@ public class EnderecoAvulsoBO {
 		enderecoAvulsoDAO.adicionar(enderecosAvulsos);
 	}
 
+	public void remover(String id)
+	{
+		enderecoAvulsoDAO.remover(id);
+	}
 	
 	public void remover(EnderecoAvulso enderecoAvulso)
 	{

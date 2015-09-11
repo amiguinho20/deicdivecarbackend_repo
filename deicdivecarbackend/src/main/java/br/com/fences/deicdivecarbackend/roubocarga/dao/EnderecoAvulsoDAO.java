@@ -177,17 +177,20 @@ public class EnderecoAvulsoDAO {
 	
 	public void remover(EnderecoAvulso enderecoAvulso)
 	{
+		String id = enderecoAvulso.getId();
+		remover(id);
+	}
+	
+	public void remover(String id)
+	{
 		try
 		{
-			Document documento = converter.paraDocumento(enderecoAvulso);
-			colecao.deleteOne(eq("_id", documento.get("_id")));
+			colecao.deleteOne(eq("_id", new ObjectId(id)));
 		}
 		catch (Exception e)
 		{
-			String msg = "Erro na alteracao. log[" + enderecoAvulso.getLogradouro() + "].";
-			System.err.println(msg);
-			e.printStackTrace();
-			throw new RuntimeException(msg);
+			String msg = "Erro no remover. log[" + e.getMessage() + "].";
+			throw new RuntimeException(msg, e);
 		}
 	}
 	
