@@ -90,14 +90,23 @@ public class IndiciadoDAO {
 	 * @param registrosPorPagina
 	 * @return List<EnderecoAvulso> paginado
 	 */
-	public Set<Indiciado> pesquisarLazy(final  Map<String, String> filtros, final int primeiroRegistro, final int registrosPorPagina)
+	public Set<Indiciado> pesquisarLazy(final  Map<String, String> filtros, final int primeiroRegistro, final int registrosPorPagina, final String campoOrdenacao, final int ordem)
 	{
 		Set<Indiciado> indiciados = new LinkedHashSet<>();
 		
 		BasicDBObject dbFiltros = montarPesquisa(filtros);
-	    MongoCursor<Document> cursor = colecao.find(dbFiltros).skip(primeiroRegistro).limit(registrosPorPagina).iterator();
-
 		
+	    MongoCursor<Document> cursor = null;
+	    if (Verificador.isValorado(campoOrdenacao))
+	    {
+	    	BasicDBObject ordenacao = new BasicDBObject(campoOrdenacao, ordem); 
+	    	cursor = colecao.find(dbFiltros).sort(ordenacao).skip(primeiroRegistro).limit(registrosPorPagina).iterator();
+	    }
+	    else
+	    {
+	    	cursor = colecao.find(dbFiltros).skip(primeiroRegistro).limit(registrosPorPagina).iterator();
+	    }
+	    
 	    try {
 	        while (cursor.hasNext()) {
 	        	Document documento = cursor.next();
