@@ -287,6 +287,15 @@ public class DeicDivecarResource {
 		return json;
 	}
     
+    @GET
+    @Path("rouboCarga/listarTipoObjetos")
+	public String rouboCargaListarTipoObjetos()
+	{
+		Map<String, String> tipos = rouboCarga.listarTipoObjetos();
+		String json = gson.toJson(tipos);
+		return json;
+	}
+    
     
     //--- CONTROLE OCORRENCIA
     
@@ -385,6 +394,23 @@ public class DeicDivecarResource {
     	json = converterIndiciado.paraJson(indiciados);
     	return json; 
 	}
+
+    @POST
+    @Path("indiciado/pesquisarLazy/{primeiroRegistro}/{registrosPorPagina}/{campoOrdenacao}/{ordem}")
+	public String indiciadoPesquisarLazy(    		
+			@PathParam("primeiroRegistro") int primeiroRegistro,
+    		@PathParam("registrosPorPagina") int registrosPorPagina,
+    		@PathParam("campoOrdenacao") String campoOrdenacao,
+    		@PathParam("ordem") int ordem,
+    		InputStream ipFiltros)
+	{
+    	String json = InputStreamParaJson.converter(ipFiltros);
+    	Map<String, String> filtros = gson.fromJson(json, Map.class); 
+    	Set<Indiciado> indiciados = indiciadoBO.pesquisarLazy(filtros, primeiroRegistro, registrosPorPagina, campoOrdenacao, ordem);
+    	json = converterIndiciado.paraJson(indiciados);
+    	return json; 
+	}
+
     
     @PUT
     @Path("indiciado/adicionar")
