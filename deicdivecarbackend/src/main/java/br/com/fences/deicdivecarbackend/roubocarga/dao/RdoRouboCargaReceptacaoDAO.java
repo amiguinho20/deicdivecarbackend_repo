@@ -373,6 +373,119 @@ public class RdoRouboCargaReceptacaoDAO {
 		return delegacias;
 	}
 	
+	public Map<String, String> listarTipoObjetos()
+	{
+		Map<String, String> tipos = new LinkedHashMap<>();
+		
+		//MongoCursor<String> cursor = colecao.distinct("ANO_BO", String.class).iterator();
+		
+//		db.rdo_roubo_carga_recep06.aggregate(
+//				[
+//					{"$match":{"OBJETO":{"$exists":true}}},
+//					{"$project":{
+//						"_id":0, 
+//						"OBJETO.ID_TIPO_OBJETO":1, 
+//						"OBJETO.DESCR_TIPO_OBJETO":1,
+//						"OBJETO.ID_SUBTIPO_OBJETO":1, 
+//						"OBJETO.DESCR_SUBTIPO_OBJETO":1
+//						}
+//					},
+//					{"$unwind":"$OBJETO"},
+//					{"$group": {
+//						"_id": {
+//							"ID_TIPO":"$OBJETO.ID_TIPO_OBJETO",
+//							"ID_SUBTIPO":"$OBJETO.ID_SUBTIPO_OBJETO"
+//							},
+//						"DESCR_TIPO":{"$first":"$OBJETO.DESCR_TIPO_OBJETO"},
+//						"DESCR_SUBTIPO":{"$first":"$OBJETO.DESCR_SUBTIPO_OBJETO"}
+//						}
+//					},
+//					{"$sort": {"DESCR_TIPO":1,"DESCR_SUBTIPO":1}}
+//				]
+//			)
+		
+		//-- match: filtro, condicao de busca
+		BasicDBObject match = new BasicDBObject("$match", new BasicDBObject("OBJETO", new BasicDBObject("$exists", true)));
+		
+		//-- project: projecao, informacao de retorno
+		BasicDBObject projectAtributos = new BasicDBObject("_id", 0);
+		projectAtributos.append("OBJETO.ID_TIPO_OBJETO", 1);
+		projectAtributos.append("OBJETO.DESCR_TIPO_OBJETO", 1);
+		projectAtributos.append("OBJETO.ID_SUBTIPO_OBJETO", 1);
+		projectAtributos.append("OBJETO.DESCR_SUBTIPO_OBJETO", 1);
+		
+		//-- project: comando
+		BasicDBObject project= new BasicDBObject("$project", projectAtributos);
+		
+		//-- unwind: "quebra" o array, desnormalizando-o
+		BasicDBObject unwind = new BasicDBObject("$unwind", "$OBJETO");
+		
+		//-- groupId: chave do agrupamento
+		BasicDBObject groupId = new BasicDBObject();
+		groupId.append("ID_TIPO","$OBJETO.ID_TIPO_OBJETO");
+		groupId.append("ID_SUBTIPO","$OBJETO.ID_SUBTIPO_OBJETO");
+		
+		//-- groupAtributos: chave mais informacao de agrupamento
+		BasicDBObject groupAtributos = new BasicDBObject("_id", groupId);
+		groupAtributos.append("DESCR_TIPO", new BasicDBObject("$first", "$OBJETO.DESCR_TIPO_OBJETO"));
+		groupAtributos.append("DESCR_SUBTIPO", new BasicDBObject("$first", "$OBJETO.DESCR_SUBTIPO_OBJETO"));
+
+		//-- group: comando de agrupamento
+		BasicDBObject group = new BasicDBObject("$group", groupAtributos);  
+		
+		//-- sortAtributos: atributos para ordenacao
+		BasicDBObject sortAtributos = new BasicDBObject();
+		sortAtributos.append("DESCR_TIPO", 1);
+		sortAtributos.append("DESCR_SUBTIPO", 1);
+		
+		//-- sort: comando de ordenacao
+		BasicDBObject sort = new BasicDBObject("$sort", sortAtributos);
+		
+		//-- pipeline: instrucoes em ordem de execucao
+		List<BasicDBObject> pipeline = Arrays.asList(match, project, unwind, group, sort);
+		
+		MongoCursor<Document> cursor = colecao.aggregate(pipeline).iterator();
+		
+	    try {
+	        while (cursor.hasNext()) {
+	        	Document documento = cursor.next();
+	        	Document idDoc = (Document) documento.get("_id");
+	        	String chave = idDoc.getString("ID_TIPO") + "|" + idDoc.getString("ID_SUBTIPO");
+	        	String valor = documento.getString("DESCR_TIPO") + " > " + documento.getString("DESCR_SUBTIPO");
+	        	tipos.put(chave, valor);
+	        }
+	    } finally {
+	        cursor.close();
+	    }
+	    
+	    //-- ordernar o map por valor
+	    tipos = ordenarPorValor(tipos);
+	    
+		return tipos;
+	}
+	
+	private Map<String, String> ordenarPorValor(Map<String, String> mapaDesordenado)
+	{
+    	// Convert Map to List
+    	List<Map.Entry<String, String>> list = new LinkedList<Map.Entry<String, String>>(mapaDesordenado.entrySet());
+
+    	// Sort list with comparator, to compare the Map values
+    	Collections.sort(list, new Comparator<Map.Entry<String, String>>() {
+    		public int compare(Map.Entry<String, String> o1,
+    								Map.Entry<String, String> o2) {
+    				return (o1.getValue()).compareTo(o2.getValue());
+    			}
+    		});
+
+    	// Convert sorted map back to a Map
+    	Map<String, String> mapaOrdenado = new LinkedHashMap<String, String>();
+    	for (Iterator<Map.Entry<String, String>> it = list.iterator(); it.hasNext();) {
+    		Map.Entry<String, String> entry = it.next();
+    		mapaOrdenado.put(entry.getKey(), entry.getValue());
+    	}
+    	return mapaOrdenado;
+	}
+	
 	
 	/**
 	 * Substitui (replace) a ocorrencia pelo id
@@ -664,6 +777,17 @@ public class RdoRouboCargaReceptacaoDAO {
 			{
 				pesquisa.append("ID_DELEGACIA", filtros.get("idDelegacia"));
 			}
+			if (filtros.containsKey("idTipoObjeto") && filtros.containsKey("idSubtipoObjeto"))
+			{
+				BasicDBObject elementoComOsCampos = new BasicDBObject();
+				elementoComOsCampos.append("ID_TIPO_OBJETO", filtros.get("idTipoObjeto"));
+				elementoComOsCampos.append("ID_SUBTIPO_OBJETO", filtros.get("idSubtipoObjeto"));
+				
+				BasicDBObject elemMatch = new BasicDBObject("$elemMatch", elementoComOsCampos);
+
+				pesquisa.append("OBJETO", elemMatch);
+			}
+
 		}
 			
 		return pesquisa;
