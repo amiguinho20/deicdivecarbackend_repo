@@ -37,8 +37,15 @@ public class IndiciadoBO {
 	
 	public Set<Indiciado> pesquisarLazy(Map<String, String> filtros, final int primeiroRegistro, final int registrosPorPagina)
 	{
-		return indiciadoDAO.pesquisarLazy(filtros, primeiroRegistro, registrosPorPagina);
+		return indiciadoDAO.pesquisarLazy(filtros, primeiroRegistro, registrosPorPagina, null, 0);
 	}
+
+	public Set<Indiciado> pesquisarLazy(Map<String, String> filtros, final int primeiroRegistro, final int registrosPorPagina,
+			final String campoOrdenacao, final int ordem)
+	{
+		return indiciadoDAO.pesquisarLazy(filtros, primeiroRegistro, registrosPorPagina, campoOrdenacao, ordem);
+	}
+
 	
 	public void substituir(Indiciado indiciado)
 	{
