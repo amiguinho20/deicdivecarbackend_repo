@@ -255,4 +255,11 @@ public class RouboCarga {
 	{
 		return rouboCargaDAO.listarDelegacias();
 	}
+	
+	public Map<String, String> listarTipoObjetos()
+	{
+		return rouboCargaDAO.listarTipoObjetos();
+	}
+	
+	
 }
