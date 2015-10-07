@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -1344,7 +1345,9 @@ db.rdo_roubo_carga_recep06.aggregate(
 		    		if (filtroCondicao.getValorTextoTipo() != null && filtroCondicao.getValorTextoTipo().equals(TipoPesquisaTexto.REGEX))
 		    		{
 						String convertido = AcentuacaoParaRegex.converter(filtroCondicao.getValorTexto());
-						dbFiltros.append(filtroCondicao.getAtributoDePesquisa(), new BasicDBObject("$regex", convertido).append("$options", "i"));
+						//dbFiltros.append(filtroCondicao.getAtributoDePesquisa(), new BasicDBObject("$regex", convertido).append("$options", "i"));
+						//Pattern.compile(".*myValue.*" , Pattern.CASE_INSENSITIVE)
+						dbFiltros.append(filtroCondicao.getAtributoDePesquisa(), Pattern.compile(convertido, Pattern.CASE_INSENSITIVE));
 		    		}
 		    		else
 		    		{	//-- EXATO
