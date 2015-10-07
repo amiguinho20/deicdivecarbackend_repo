@@ -1,5 +1,6 @@
 package br.com.fences.deicdivecarbackend.roubocarga.negocio;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,8 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 
 import br.com.fences.deicdivecarbackend.roubocarga.dao.RdoRouboCargaReceptacaoDAO;
+import br.com.fences.fencesutils.filtrocustom.ArvoreSimples;
+import br.com.fences.fencesutils.filtrocustom.FiltroCondicao;
 import br.com.fences.fencesutils.verificador.Verificador;
 import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
 import br.com.fences.ocorrenciaentidade.ocorrencia.natureza.Natureza;
@@ -221,9 +224,20 @@ public class RouboCarga {
 		return rouboCargaDAO.contar(filtros);
 	}
 	
+	public int contarDinamico(List<FiltroCondicao> filtroCondicoes)
+	{
+		return rouboCargaDAO.contarDinamico(filtroCondicoes);
+	}
+	
 	public List<Ocorrencia> pesquisarLazy(Map<String, String> filtros, int primeiroRegistro, int registrosPorPagina)
 	{
 		return rouboCargaDAO.pesquisarLazy(filtros, primeiroRegistro, registrosPorPagina);
+	}
+	
+	public List<Ocorrencia> pesquisarDinamicoLazy(List<FiltroCondicao> filtroCondicoes, int primeiroRegistro,
+			int registrosPorPagina) {
+		
+		return rouboCargaDAO.pesquisarDinamicoLazy(filtroCondicoes, primeiroRegistro, registrosPorPagina);
 	}
 	
 	public String pesquisarUltimaDataRegistroNaoComplementar()
@@ -251,15 +265,187 @@ public class RouboCarga {
 		return rouboCargaDAO.listarAnos();
 	}
 	
+	public Map<String, String> listarAnosMap()
+	{
+		List<String> lista = rouboCargaDAO.listarAnos();
+		Map<String, String> map = new LinkedHashMap<>();
+		for (String valor : lista)
+		{
+			map.put(valor, valor);
+		}
+		return map;
+	}
+	
 	public Map<String, String> listarDelegacias()
 	{
 		return rouboCargaDAO.listarDelegacias();
+	}
+	
+	public Map<String, String> listarNaturezas()
+	{
+		return rouboCargaDAO.listarNaturezas();
+	}
+	
+	public ArvoreSimples listarNaturezasArvore()
+	{
+		ArvoreSimples arvore = new ArvoreSimples();
+		arvore.setChave("0");
+		arvore.setValor("Raiz - naturezas");
+		
+		Map<String, String> mapNaturezas = rouboCargaDAO.listarNaturezas();
+		
+		for (Map.Entry<String, String> entry : mapNaturezas.entrySet())
+		{
+			String chaveComposta[] = entry.getKey().split("\\|");
+			String valorComposto[] = entry.getValue().split(">");
+			
+			int nivel = 0;
+			
+			alimentarArvore(arvore, nivel, chaveComposta, valorComposto);
+		}
+		
+		return arvore;
+	}
+	
+	public ArvoreSimples listarNaturezasArvoreComDesdobramentoCircunstancia()
+	{
+		ArvoreSimples arvore = new ArvoreSimples();
+		arvore.setChave("0");
+		arvore.setValor("Raiz - naturezas");
+		
+		Map<String, String> mapNaturezas = rouboCargaDAO.listarNaturezasComDesdobramentoCircunstancia();
+		
+		for (Map.Entry<String, String> entry : mapNaturezas.entrySet())
+		{
+			String chaveComposta[] = entry.getKey().split("\\|");
+			String valorComposto[] = entry.getValue().split(">");
+			
+			int nivel = 0;
+			
+			alimentarArvore(arvore, nivel, chaveComposta, valorComposto);
+		}
+		
+		return arvore;
+	}
+	
+	/**
+	 * RECURSIVO!
+	 * 
+	 * Navega na arvore conforme o nivel de profundidade e insere o elemento na hierarquia e nivel adequados.
+	 * @param arvore
+	 * @param nivel
+	 * @param chaveComposta
+	 * @param valorComposto
+	 */
+	private void alimentarArvore(ArvoreSimples arvore, int nivel, String[] chaveComposta, String[] valorComposto)
+	{
+		if (nivel < chaveComposta.length)
+		{
+			String chave = montarChaveHierarquica(chaveComposta, nivel);
+			String valor = valorComposto[nivel].trim();
+			ArvoreSimples filho = recuperarElemento(arvore, chave, valor);
+			if (filho == null)
+			{
+				filho = new ArvoreSimples(chave, valor);
+				arvore.getFilhos().add(filho);
+			}
+			nivel++; 
+			alimentarArvore(filho, nivel, chaveComposta, valorComposto);
+		
+		}
+	}
+	
+	private ArvoreSimples recuperarElemento(ArvoreSimples arvore, String chave, String valor)
+	{
+		ArvoreSimples elementoRetorno = null;
+		if (arvore.getFilhos().contains(new ArvoreSimples(chave, valor)))
+		{
+			for (ArvoreSimples elemento : arvore.getFilhos())
+			{
+				if (elemento.getChave().equals(chave))
+				{
+					elementoRetorno = elemento;
+				}
+			}
+		}
+		return elementoRetorno;
+	}
+	
+	private String montarChaveHierarquica(String[] chaves, int nivel)
+	{
+		StringBuffer chaveHierarquica = new StringBuffer();
+		
+		if (chaves != null && chaves.length > 0)
+		{
+			for (int indice = 0; indice <= nivel; indice++)
+			{
+				String chave = chaves[indice];
+				if (!chaveHierarquica.toString().isEmpty())
+				{
+					chaveHierarquica.append("|");
+				}
+				chaveHierarquica.append(chave);
+			}
+		}
+		
+		return chaveHierarquica.toString();
+	}
+	
+	public Map<String, String> listarTipoPessoas()
+	{
+		return rouboCargaDAO.listarTipoPessoas();
 	}
 	
 	public Map<String, String> listarTipoObjetos()
 	{
 		return rouboCargaDAO.listarTipoObjetos();
 	}
+
+	public ArvoreSimples listarTipoObjetosArvore()
+	{
+		ArvoreSimples arvore = new ArvoreSimples();
+		arvore.setChave("0");
+		arvore.setValor("Raiz - tipo objeto");
+		Set<ArvoreSimples> nivel1 = arvore.getFilhos();
+		
+		//-- ordenacao por descricao
+		Map<String, String> mapTipoObjetos = rouboCargaDAO.listarTipoObjetos();
+		
+		for (Map.Entry<String, String> entry : mapTipoObjetos.entrySet())
+		{
+			String chaveComposta[] = entry.getKey().split("\\|");
+			String valorComposto[] = entry.getValue().split(">");
+			
+			String chave = chaveComposta[0];
+			String subChave = chaveComposta[1];
+			String valor = valorComposto[0].trim();
+			String subValor = valorComposto[1].trim();
+			
+			
+			if (nivel1.contains(new ArvoreSimples(chave, valor)))
+			{
+				for (ArvoreSimples elementoNivel1 : nivel1)
+				{
+					if (elementoNivel1.getChave().equals(chave))
+					{
+						ArvoreSimples elementoNivel2 = new ArvoreSimples(subChave, subValor);
+						elementoNivel1.getFilhos().add(elementoNivel2);
+					}
+				}
+			}
+			else
+			{
+				ArvoreSimples elementoNivel1 = new ArvoreSimples(chave, valor);
+				ArvoreSimples elementoNivel2 = new ArvoreSimples(subChave, subValor);
+				elementoNivel1.getFilhos().add(elementoNivel2);
+				nivel1.add(elementoNivel1);
+			}
+			
+		}
+		
+		return arvore;
+	}
+
 	
 	
 }

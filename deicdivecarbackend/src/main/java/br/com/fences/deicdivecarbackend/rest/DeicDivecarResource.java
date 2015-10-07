@@ -35,6 +35,8 @@ import br.com.fences.deicdivecarentidade.indiciado.Indiciado;
 import br.com.fences.fencesutils.conversor.InputStreamParaJson;
 import br.com.fences.fencesutils.conversor.converter.ColecaoJsonAdapter;
 import br.com.fences.fencesutils.conversor.converter.Converter;
+import br.com.fences.fencesutils.filtrocustom.ArvoreSimples;
+import br.com.fences.fencesutils.filtrocustom.FiltroCondicao;
 import br.com.fences.ocorrenciaentidade.controle.ControleOcorrencia;
 import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
 
@@ -224,6 +226,17 @@ public class DeicDivecarResource {
 		int count = rouboCarga.contar(filtros);
 		return Integer.toString(count);
 	}
+    
+    @POST
+    @Path("rouboCarga/contarDinamico")
+	public String rouboCargaContarDinamico(InputStream ipFiltros)
+	{
+    	String json = InputStreamParaJson.converter(ipFiltros);
+    	Type collectionType = new TypeToken<List<FiltroCondicao>>(){}.getType();
+    	List<FiltroCondicao> filtroCondicoes = gson.fromJson(json, collectionType); 
+		int count = rouboCarga.contarDinamico(filtroCondicoes);
+		return Integer.toString(count);
+	}
 	
     @POST
     @Path("rouboCarga/pesquisarLazy/{primeiroRegistro}/{registrosPorPagina}")
@@ -235,6 +248,21 @@ public class DeicDivecarResource {
     	String json = InputStreamParaJson.converter(ipFiltros);
     	Map<String, String> filtros = gson.fromJson(json, Map.class); 
     	List<Ocorrencia> ocorrencias = rouboCarga.pesquisarLazy(filtros, primeiroRegistro, registrosPorPagina);
+    	json = converterOcorrencia.paraJson(ocorrencias);
+    	return json; 
+	}
+    
+    @POST
+    @Path("rouboCarga/pesquisarDinamicoLazy/{primeiroRegistro}/{registrosPorPagina}")
+	public String rouboCargaPesquisarDinamicoLazy(    		
+			@PathParam("primeiroRegistro") int primeiroRegistro,
+    		@PathParam("registrosPorPagina") int registrosPorPagina,
+    		InputStream ipFiltros)
+	{
+    	String json = InputStreamParaJson.converter(ipFiltros);
+    	Type collectionType = new TypeToken<List<FiltroCondicao>>(){}.getType();
+    	List<FiltroCondicao> filtroCondicoes = gson.fromJson(json, collectionType); 
+    	List<Ocorrencia> ocorrencias = rouboCarga.pesquisarDinamicoLazy(filtroCondicoes, primeiroRegistro, registrosPorPagina);
     	json = converterOcorrencia.paraJson(ocorrencias);
     	return json; 
 	}
@@ -277,6 +305,15 @@ public class DeicDivecarResource {
 		String json = gson.toJson(anos);
 		return json;
 	}
+    
+    @GET
+    @Path("rouboCarga/listarAnosMap")
+	public String rouboCargaListarAnosMap()
+	{
+		Map<String, String> anos = rouboCarga.listarAnosMap();
+		String json = gson.toJson(anos);
+		return json;
+	}
  
     @GET
     @Path("rouboCarga/listarDelegacias")
@@ -288,6 +325,42 @@ public class DeicDivecarResource {
 	}
     
     @GET
+    @Path("rouboCarga/listarNaturezas")
+	public String rouboCargaListarNaturezas()
+	{
+		Map<String, String> naturezas = rouboCarga.listarNaturezas();
+		String json = gson.toJson(naturezas);
+		return json;
+	}
+    
+    @GET
+    @Path("rouboCarga/listarNaturezasArvore")
+	public String rouboCargaListarNaturezasArvore()
+	{
+		ArvoreSimples arvore = rouboCarga.listarNaturezasArvore();
+		String json = gson.toJson(arvore);
+		return json;
+	}
+    
+    @GET
+    @Path("rouboCarga/listarNaturezasArvoreComDesdobramentoCircunstancia")
+	public String rouboCargaListarNaturezasArvoreComDesdobramentoCircunstancia()
+	{
+		ArvoreSimples arvore = rouboCarga.listarNaturezasArvoreComDesdobramentoCircunstancia();
+		String json = gson.toJson(arvore);
+		return json;
+	}
+    
+    @GET
+    @Path("rouboCarga/listarTipoPessoas")
+	public String rouboCargaListarTipoPessoas()
+	{
+		Map<String, String> tipos = rouboCarga.listarTipoPessoas();
+		String json = gson.toJson(tipos);
+		return json;
+	}
+    
+    @GET
     @Path("rouboCarga/listarTipoObjetos")
 	public String rouboCargaListarTipoObjetos()
 	{
@@ -295,7 +368,15 @@ public class DeicDivecarResource {
 		String json = gson.toJson(tipos);
 		return json;
 	}
-    
+ 
+    @GET
+    @Path("rouboCarga/listarTipoObjetosArvore")
+	public String rouboCargaListarTipoObjetosArvore()
+	{
+		ArvoreSimples arvore = rouboCarga.listarTipoObjetosArvore();
+		String json = gson.toJson(arvore);
+		return json;
+	}
     
     //--- CONTROLE OCORRENCIA
     
