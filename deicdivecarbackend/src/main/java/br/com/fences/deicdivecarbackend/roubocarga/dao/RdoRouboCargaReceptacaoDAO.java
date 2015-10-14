@@ -1036,6 +1036,7 @@ db.rdo_roubo_carga_recep06.aggregate(
 		try
 		{
 			ocorrencia.getAuxiliar().setDataProcessamento(FormatarData.dataHoraCorrente());
+			atribuirPesquisaGeral(ocorrencia);
 			Document documento = converter.paraDocumento(ocorrencia);
 			colecao.replaceOne(Filters.eq("_id", documento.get("_id")), documento);
 //			Bson filtros = Filters.and(
@@ -1069,6 +1070,7 @@ db.rdo_roubo_carga_recep06.aggregate(
 		try
 		{
 			ocorrencia.getAuxiliar().setDataProcessamento(FormatarData.dataHoraCorrente());
+			atribuirPesquisaGeral(ocorrencia);
 			Document documento = converter.paraDocumento(ocorrencia);
 			colecao.insertOne(documento);
 			ocorrencia = converter.paraObjeto(documento, Ocorrencia.class);
@@ -1081,6 +1083,16 @@ db.rdo_roubo_carga_recep06.aggregate(
 					+ ocorrencia.getNomeDelegacia() + "] dtReg[" + ocorrencia.getDatahoraRegistroBo() + "] "
 					+ "err[" + e.getMessage() + "].";
 			throw new RuntimeException(msg);
+		}
+	}
+	
+	private void atribuirPesquisaGeral(Ocorrencia ocorrencia)
+	{
+		String valorPesquisaTextual = ocorrencia.getAuxiliar().montarAtributoParaPesquisaGeral(ocorrencia);
+		if (Verificador.isValorado(valorPesquisaTextual))
+		{
+			ocorrencia.getAuxiliar().setPesquisaGeralRegex(valorPesquisaTextual);
+			ocorrencia.getAuxiliar().setPesquisaGeralTextual(valorPesquisaTextual);
 		}
 	}
 	
