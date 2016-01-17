@@ -124,6 +124,13 @@ public class ConfiguracaoDaAplicacaoContextListener implements ServletContextLis
     	appConfig.setDbMongoDatabase(verificarCarregar("dbMongoDatabase"));
     	appConfig.setDbMongoUser(verificarCarregar("dbMongoUser"));
     	appConfig.setDbMongoPass(verificarCarregar("dbMongoPass"));
+    	
+    	appConfig.setElasticSearchHost(verificarCarregar("elasticSearchHost"));
+    	appConfig.setElasticSearchPort(verificarCarregar("elasticSearchPort"));
+    	appConfig.setElasticSearchInsert(verificarCarregar("elasticSearchInsert"));
+    	appConfig.setElasticSearchSelect(verificarCarregar("elasticSearchSelect"));
+    	
+    	
     }
     
     private String verificarCarregar(String propriedade)

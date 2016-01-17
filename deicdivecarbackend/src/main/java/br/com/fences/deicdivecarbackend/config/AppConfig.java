@@ -19,6 +19,10 @@ public class AppConfig implements Serializable{
 	private String dbMongoDatabase;
 	private String dbMongoUser;
 	private String dbMongoPass;
+	private String elasticSearchHost;
+	private String elasticSearchPort;
+	private String elasticSearchInsert;
+	private String elasticSearchSelect;
 	
 	public String getLogConsole() {
 		return logConsole;
@@ -79,6 +83,30 @@ public class AppConfig implements Serializable{
 	}
 	public void setDbMongoPass(String dbMongoPass) {
 		this.dbMongoPass = dbMongoPass;
+	}
+	public String getElasticSearchHost() {
+		return elasticSearchHost;
+	}
+	public void setElasticSearchHost(String elasticSearchHost) {
+		this.elasticSearchHost = elasticSearchHost;
+	}
+	public String getElasticSearchPort() {
+		return elasticSearchPort;
+	}
+	public void setElasticSearchPort(String elasticSearchPort) {
+		this.elasticSearchPort = elasticSearchPort;
+	}
+	public String getElasticSearchInsert() {
+		return elasticSearchInsert;
+	}
+	public void setElasticSearchInsert(String elasticSearchInsert) {
+		this.elasticSearchInsert = elasticSearchInsert;
+	}
+	public String getElasticSearchSelect() {
+		return elasticSearchSelect;
+	}
+	public void setElasticSearchSelect(String elasticSearchSelect) {
+		this.elasticSearchSelect = elasticSearchSelect;
 	}
 
 	

@@ -1,6 +1,7 @@
 package br.com.fences.deicdivecarbackend.rest;
 
 import java.io.InputStream;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import br.com.fences.fencesutils.conversor.converter.ColecaoJsonAdapter;
 import br.com.fences.fencesutils.conversor.converter.Converter;
 import br.com.fences.fencesutils.filtrocustom.ArvoreSimples;
 import br.com.fences.fencesutils.filtrocustom.FiltroCondicao;
+import br.com.fences.ocorrenciaentidade.composto.OcorrenciaResultadoComposto;
 import br.com.fences.ocorrenciaentidade.controle.ControleOcorrencia;
 import br.com.fences.ocorrenciaentidade.ocorrencia.Ocorrencia;
 
@@ -266,6 +268,27 @@ public class DeicDivecarResource {
     	json = converterOcorrencia.paraJson(ocorrencias);
     	return json; 
 	}
+    
+//    @POST
+//    @Path("rouboCarga/pesquisarDinamicoLazyComposto/{primeiroRegistro}/{registrosPorPagina}")
+//	public String rouboCargaPesquisarDinamicoLazyComposto(    		
+//			@PathParam("primeiroRegistro") int primeiroRegistro,
+//    		@PathParam("registrosPorPagina") int registrosPorPagina,
+//    		InputStream ipFiltros)
+//	{
+//    	String json = InputStreamParaJson.converter(ipFiltros);
+//    	Type collectionType = new TypeToken<List<FiltroCondicao>>(){}.getType();
+//    	List<FiltroCondicao> filtroCondicoes = gson.fromJson(json, collectionType); 
+//    	OcorrenciaResultadoComposto orc = rouboCarga.pesquisarDinamicoLazyComposto(filtroCondicoes, primeiroRegistro, registrosPorPagina);
+//    	
+//    	Gson gsonComTransient = new GsonBuilder()
+//    		    .excludeFieldsWithModifiers(Modifier.STATIC, Modifier.VOLATILE)
+//    		    .registerTypeHierarchyAdapter(Collection.class, new ColecaoJsonAdapter())
+//    		    .create();
+//
+//    	json = gsonComTransient.toJson(orc, OcorrenciaResultadoComposto.class);
+//    	return json; 
+//	}
 
     @GET
     @Path("rouboCarga/pesquisarUltimaDataRegistroNaoComplementar")
